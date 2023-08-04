@@ -1,0 +1,44 @@
+const getOrSetTenantSecrets = async(
+    id,
+    data
+  )=> {
+    const [certificateService, cookieService, jwkService] = await Promise.all([
+      this.getCertificateService(),
+      this.getCookieService(),
+      this.getJwkService()
+    ]);
+    const existing = id ? await this.findById(id) : null;
+
+    const [jwk, x509] = await Promise.all([
+      jwkService.createJWK(),
+      certificateService.createX509Certificate()
+    ]);
+
+    // Prevent modification of the system-managed tenant secrets
+    const jwkExpireDate = new Date();
+    jwkExpireDate.setFullYear(jwkExpireDate.getFullYear() + 1);
+
+    set(
+      data,
+      'secrets.jwks',
+      existing?.secrets?.jwks || [{ jwk, expires: jwkExpireDate }]
+    );
+
+    //  The certificate list is updated or new certificate is generated
+    //  when there is no certificates defined.
+    //  We don't update the certificates by  create/post crud operations
+    set(
+      data,
+      'secrets.certificates.x509',
+      data?.secrets?.certificates?.x509 ??
+        existing?.secrets?.certificates?.x509 ?? [x509]
+    );
+
+    set(
+      data,
+      'secrets.cookies.keys',
+      existing?.secrets?.cookies?.keys || [cookieService.createSigningKey()]
+    );
+
+    return data;
+  }

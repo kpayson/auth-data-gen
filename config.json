@@ -1,0 +1,25 @@
+{
+    "poolConfig":{
+        "host": "localhost",
+        "port": 3308,
+        "database": "labshare",
+        "user": "root",
+        "password": "",
+        "connectionLimit": 5
+    },
+
+    "seedCounts": {
+        "Client": 30,
+        "Group": 30,
+        "GroupRole": 90,
+        "IdentityProvider": 20,
+        "Namespace":3,
+        "Permission": 30,
+        "Role": 30,
+        "RolePermission": 100,
+        "Tenant": 10,
+        "User": 10
+
+    }
+
+}

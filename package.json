@@ -2,13 +2,22 @@
   "name": "auth-data-gen",
   "version": "1.0.0",
   "description": "auth data generation",
-  "main": "index.js",
+  "main": "index.ts",
+
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node build/index.js",
+    "prestart": "npm run build",
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@faker-js/faker": "^8.0.2",
     "mariadb": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.3",
+    "typescript": "^5.1.6"
   }
 }
+
