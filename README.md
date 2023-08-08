@@ -5,7 +5,7 @@ A tool for generating mock seed data for a set of tables in the database
 
 ### Getting Started
 - npm i
-- edit config.json
+- create/edit config.json based on config.sample.json
 - npm run build
 - npm run start
 

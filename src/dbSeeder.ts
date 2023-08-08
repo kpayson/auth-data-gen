@@ -71,7 +71,7 @@ export class DBSeeder {
     }
     
 
-    private async SeedEntity(entity: SeedEntity, connection: Connection) {
+    private async seedEntity(entity: SeedEntity, connection: Connection) {
         const count = this._entityCounts[entity.name] || 1;
         console.log("entity="+entity.name)
         console.log(entity.foreignKeyValuesQuery );
@@ -94,7 +94,7 @@ export class DBSeeder {
         console.log(foreignKeyValueSet);
     }
 
-    public async TruncAllTables(seedEntities: SeedEntity[]) {
+    public async truncAllTables(seedEntities: SeedEntity[]) {
         const conn = await this._connectionPromise;
         await conn.query("SET FOREIGN_KEY_CHECKS=0");
         for(const entity of seedEntities) {
@@ -103,12 +103,12 @@ export class DBSeeder {
         await conn.query("SET FOREIGN_KEY_CHECKS=1");
     }
 
-    public async SeedDatabase(seedEntities: SeedEntity[]) {
+    public async seedDatabase(seedEntities: SeedEntity[]) {
         const connection = await this._connectionPromise;
 
         for (const entity of seedEntities) {
             try {
-                await this.SeedEntity(entity, connection); 
+                await this.seedEntity(entity, connection); 
             }
             catch(e) {
                 console.error("Error seeding entity: " + entity.name)

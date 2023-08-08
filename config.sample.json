@@ -19,7 +19,8 @@
         "RolePermission": 100,
         "Tenant": 10,
         "User": 10
+    },
 
-    }
+    "dbExportPath":"/Users/kenpayson/documents/temp/labshare_export.json"
 
 }

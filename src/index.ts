@@ -34,8 +34,8 @@ const seedEntities: SeedEntity[] = [
 
 console.log("starting");
 
-seeder.TruncAllTables(seedEntities).then(() => {
-    seeder.SeedDatabase(seedEntities).then(() => {
+seeder.truncAllTables(seedEntities).then(() => {
+    seeder.seedDatabase(seedEntities).then(() => {
         console.log("Database seed complete")
     })
 });
