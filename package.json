@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "auth data generation",
   "main": "index.ts",
-
   "scripts": {
     "start": "node build/index.js",
     "prestart": "npm run build",
@@ -13,11 +12,12 @@
   "license": "ISC",
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
+    "lodash": "^4.17.21",
     "mariadb": "^3.2.0"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.196",
     "@types/node": "^20.3.3",
     "typescript": "^5.1.6"
   }
 }
-
