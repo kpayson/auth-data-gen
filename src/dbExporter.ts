@@ -50,7 +50,7 @@ export class DbExporter {
 
     private async getExportFields(entity:ExportEntity) {
         const exportFields = (entity.exportFields || "*") === "*" ?
-            await this.dbService.allEntityFields(entity.name) : entity.exportFields;
+            (await this.dbService.allEntityFields(entity.name)).map(x=>x.fieldName) : entity.exportFields;
         return difference(exportFields, entity.excludedFields || []);
     }
 
@@ -75,18 +75,19 @@ export class DbExporter {
 
         // combine specified filters with foreign key filters 
         const whereClauseParts = (entity.filters || []).concat(foreignWhereClauseParts);
+        const whereClause = whereClauseParts.some(Boolean) ? `Where ${whereClauseParts.join(' and ')}` : ''
 
         // get the fields that will be part of the json export
         const exportFields = await this.getExportFields(entity);
 
-        // get the fields that will be selected from the database (same of export fields with possible addition of primary key)
-        const selectFields = exportFields.slice();
+        //pk field is necessary to maintain relationships during import so make sure it is exported
         const pkField = entity.primaryKeyField || "id";
-        if(!selectFields.some(f=>f===pkField)){ selectFields.unshift(pkField)}
-        const selectQuery = `Select ${selectFields.join(',')} From \`${entity.name}\` Where ${whereClauseParts.join(' and ')}`;
+        if(!exportFields.some(f=>f===pkField)){ exportFields.unshift(pkField)}
+
+        const selectQuery = `Select ${exportFields.join(',')} From \`${entity.name}\` ${whereClause}`;
         
         // query database for entity values
-        const res = await this.dbService.query<any[]>(selectQuery)
+        const res = await this.dbService.select<any[]>(selectQuery)
 
         return res;
     }

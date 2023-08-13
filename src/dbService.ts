@@ -12,11 +12,14 @@ export interface TableDependencyPair {
 
 export interface IDBService
 {
-    // execute any sql statement
-    query<T>(queryString:string): Promise<T>;
+    // sql select query
+    select<T>(queryString:string): Promise<T>;
+
+    // insert query
+    insert(queryString: string, values:any[]): Promise<any> ;
 
     // return all entity fields (column names) for a given entity (table)
-    allEntityFields(entityName:string): Promise<string[]>;
+    allEntityFields(entityName:string): Promise<{fieldName:string, dataType:string}[]>;
 
     // return columns in the table that are foreign keys along with the table they reference
     foreignKeyFields(entityName:string): Promise<ForeignKeyField[]>;
@@ -24,13 +27,16 @@ export interface IDBService
     // if table A has a column that is a foreign key into table B then then there is a dependency from A to B
     // return all such pairs
     tableDependencies(tableNames: string[]): Promise<TableDependencyPair[]>;
+
+    // return the auto increment pk field
+    tableAutoPkFields(tableName: string): Promise<string[]> 
 }
 
 export class MariaDBService implements IDBService
 {
     private _tableSchema: string;
     private _connectionPromise:Promise<Connection>;
-    
+
     constructor(dbConfig: PoolConfig) {
         const pool = createPool(dbConfig);
         this._connectionPromise = pool.getConnection();
@@ -41,22 +47,28 @@ export class MariaDBService implements IDBService
         return await this._connectionPromise;
     }
 
-    async query<T>(queryString: string): Promise<T> {
+    async select<T>(queryString: string): Promise<T> {
         const connection = await this.getConnection();
         const res = await connection.query(queryString);
         return res;
     }
 
-    async allEntityFields(entityName: string): Promise<string[]> {
+    async insert(queryString: string, values:any[]): Promise<any> {
+        const connection = await this.getConnection();
+        const res = await connection.query(queryString, values);
+        return res;
+    }
+
+    async allEntityFields(entityName: string): Promise<{fieldName:string, dataType:string}[]> {
         const columnQuery = `
-            Select COLUMN_NAME 
+            Select COLUMN_NAME, DATA_TYPE  
             From INFORMATION_SCHEMA.COLUMNS
             Where TABLE_SCHEMA = '${this._tableSchema}' And
                 TABLE_NAME = '${entityName}'
         `;
         const connection = await this.getConnection();
-        const columns = await connection.query<{COLUMN_NAME:string}[]>(columnQuery);
-        const columnNames = columns.map(x=>x.COLUMN_NAME);
+        const columns = await connection.query<{COLUMN_NAME:string, DATA_TYPE:string}[]>(columnQuery);
+        const columnNames = columns.map(x=>({fieldName:x.COLUMN_NAME, dataType:x.DATA_TYPE}));
         return columnNames;
     }
 
@@ -92,6 +104,21 @@ export class MariaDBService implements IDBService
         const res = await connection.query(dependenciesQuery);
         const pairs:TableDependencyPair[] = res.map((x:any)=>({tableName:x.TABLE_NAME, referencedTableName:x.REFERENCED_TABLE_NAME}))
         return pairs;
+    }
+
+    async tableAutoPkFields(tableName: string): Promise<string[]> {
+        const pkColumnQuery = `
+            Select COLUMN_NAME 
+            From INFORMATION_SCHEMA.COLUMNS
+            Where TABLE_SCHEMA = 'labshare' And
+                TABLE_NAME = '${tableName}' And
+                EXTRA = 'auto_increment' And
+                COLUMN_KEY = 'PRI'
+        `;
+        const connection = await this.getConnection();
+        const res = await connection.query(pkColumnQuery);
+        const pkFields = res.map((x:any)=>x.COLUMN_NAME);
+        return pkFields;
     }
 
 } 

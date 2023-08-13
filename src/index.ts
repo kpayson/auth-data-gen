@@ -1,4 +1,4 @@
-import { DBSeeder, SeedEntity, countDictionary } from "./dbSeeder.js";
+import { DBSeeder, SeedEntity, countDictionary } from "./dbSeeder";
 import { PoolConfig } from 'mariadb';
 import { config } from "./config";
 import {
@@ -13,90 +13,107 @@ import {
     tenantEntity,
     userEntity
 } from "./entity-generators"
-import { DbExporter, ExportEntity } from "./dbExporter.js";
+import { DbExporter, ExportEntity } from "./dbExporter";
+import { DBImporter } from "./dbImporter";
 
 import fs from 'fs';
 
-const counts: countDictionary = config.seedCounts;
-const poolConfig: PoolConfig = config.poolConfig;
+(async () => {
 
-const seeder = new DBSeeder(poolConfig, counts);
+    const counts: countDictionary = config.seedCounts;
+    const poolConfig: PoolConfig = config.poolConfig;
 
-const seedEntities: SeedEntity[] = [
-    userEntity, 
-    tenantEntity, 
-    clientEntity, 
-    roleEntity, 
-    permissionEntity, 
-    rolePermissionEntity,
-    namespaceEntity,
-    groupEntity,
-    groupRoleEntity,
-    identityProviderEntity
-];
+    const seeder = new DBSeeder(poolConfig, counts);
 
-console.log("starting");
+    const seedEntities: SeedEntity[] = [
+        userEntity,
+        tenantEntity,
+        clientEntity,
+        roleEntity,
+        permissionEntity,
+        rolePermissionEntity,
+        namespaceEntity,
+        groupEntity,
+        groupRoleEntity,
+        identityProviderEntity
+    ];
 
-const exporter = new DbExporter(poolConfig);
-const exportEntities:ExportEntity[] = [
-    {
-        name:"Group"
-    },
+    console.log("starting");
 
-    {
-        
-        name:"Client",
-        exportFields:"*",
-        excludedFields:['clientSecret'],
-        primaryKeyField:"id",
-        filters:[]
-        
-    },
-    {
-        name:"Role",
-        exportFields:"*",
-    },
-    {
-        name:"Tenant",
-        exportFields:['title','description','tenantId'],
-        excludedFields:[],
-        primaryKeyField:"id",
-        filters:['id=7'],
-    }, 
+    await seeder.seedDatabase(seedEntities);
 
-    {
-        name:"RolePermission"
-    },
-    {
-        name:"Namespace"
-    },
 
-    {
-        name:"GroupRole"
-    },
-    {
-        name:"IdentityProvider"
-    },
-    {
-        name:"Permission"
-    }
-]
-exporter.exportDB(exportEntities).then(data=>{
+    const exporter = new DbExporter(poolConfig);
+    const exportEntities: ExportEntity[] = [
+        {
+            name: "Group"
+        },
+
+        {
+
+            name: "Client",
+            exportFields: "*",
+            excludedFields: ['clientSecret'],
+            primaryKeyField: "id",
+            filters: []
+
+        },
+        {
+            name: "Role",
+            exportFields: "*",
+        },
+        {
+            name: "Tenant",
+            exportFields: ['title', 'description', 'tenantId', 'secrets'],
+            excludedFields: [],
+            primaryKeyField: "id",
+            filters: ['id=7'],
+        },
+
+        {
+            name: "RolePermission"
+        },
+        {
+            name: "Namespace"
+        },
+
+        {
+            name: "GroupRole"
+        },
+        {
+            name: "IdentityProvider"
+        },
+        {
+            name: "Permission"
+        }
+    ]
+    const exportData = await exporter.exportDB(exportEntities);
     try {
         const jsonData = JSON.stringify(
-            data, 
+            exportData,
             (key, value) => {
                 return typeof value === 'bigint'
                     ? value.toString()
                     : value // return everything else unchanged
-                }, 
+            },
             4
         );
         console.log(jsonData);
-        fs.writeFileSync(config.dbExportPath,jsonData);
+        fs.writeFileSync(config.dbExportPath, jsonData);
     }
-    catch(e) {
+    catch (e) {
         console.log(e);
-    }      
-});
+    }
 
+
+    await seeder.truncAllTables(seedEntities);
+
+    const importer = new DBImporter(poolConfig);
+    const importJson = fs.readFileSync(config.dbExportPath, 'utf-8');
+    const importData = JSON.parse(importJson);
+
+    importer.importDB(importData);
+
+
+
+})();
