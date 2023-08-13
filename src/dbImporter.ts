@@ -75,8 +75,6 @@ export class DBImporter {
 
     async importDB(data:{[entityName:string]:any[]}) {
 
-        const tablesWithCols = await this.dbService.tablesWithColumns();
-
         const tableNames = Object.keys(data);
         const sortedTableNames = await this.topoSortTables(tableNames);
         let insertErrors:any[] = [];
