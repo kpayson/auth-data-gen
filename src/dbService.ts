@@ -1,4 +1,6 @@
 import { createPool, PoolConfig, Connection, Pool } from 'mariadb';
+import { groupBy } from 'lodash';
+import { Dictionary } from 'lodash';
 
 export interface ForeignKeyField {
     foreignEntityName: string; //the table being reference
@@ -29,7 +31,9 @@ export interface IDBService
     tableDependencies(tableNames: string[]): Promise<TableDependencyPair[]>;
 
     // return the auto increment pk field
-    tableAutoPkFields(tableName: string): Promise<string[]> 
+    tableAutoPkFields(tableName: string): Promise<string[]> ;
+
+    tablesWithColumns(): Promise<Dictionary<any[]>> 
 }
 
 export class MariaDBService implements IDBService
@@ -110,7 +114,7 @@ export class MariaDBService implements IDBService
         const pkColumnQuery = `
             Select COLUMN_NAME 
             From INFORMATION_SCHEMA.COLUMNS
-            Where TABLE_SCHEMA = 'labshare' And
+            Where TABLE_SCHEMA = '${this._tableSchema}' And
                 TABLE_NAME = '${tableName}' And
                 EXTRA = 'auto_increment' And
                 COLUMN_KEY = 'PRI'
@@ -119,6 +123,30 @@ export class MariaDBService implements IDBService
         const res = await connection.query(pkColumnQuery);
         const pkFields = res.map((x:any)=>x.COLUMN_NAME);
         return pkFields;
+    }
+
+    async tablesWithColumns(): Promise<Dictionary<any[]>> {
+        const queryString = `
+            Select TABLE_NAME, COLUMN_NAME, IS_NULLABLE, DATA_TYPE, COLUMN_TYPE, COLUMN_KEY, EXTRA
+            From INFORMATION_SCHEMA.COLUMNS
+            Where Table_Schema = '${this._tableSchema}'
+        `;
+
+        const connection = await this.getConnection();
+        const res = await connection.query(queryString);
+        const data = res.map((x:any)=>({
+            tableName: x.TABLE_NAME,
+            columnName: x.COLUMN_NAME,
+            isNullable: x.IS_NULLABLE,
+            dataType: x.DATA_TYPE,
+            columnType: x.COLUMN_TYPE,
+            columnKey: x.COLUMN_KEY,
+            extra: x.EXTRA
+        }))
+
+        const tableGroupedData = groupBy(data,g=>g.tableName);
+        return tableGroupedData;
+
     }
 
 } 

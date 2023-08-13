@@ -40,6 +40,8 @@ import fs from 'fs';
 
     console.log("starting");
 
+   
+
     await seeder.seedDatabase(seedEntities);
 
 

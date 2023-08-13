@@ -1,6 +1,6 @@
 
 import { PoolConfig } from 'mariadb';
-import { IDBService, MariaDBService, TableDependencyPair} from './dbService'
+import { IDBService, MariaDBService } from './dbService'
 import { difference, keyBy } from 'lodash';
 import { GraphNode, topologicalSort } from './graphUtil';
 
@@ -43,15 +43,15 @@ export class DBImporter {
             try {
                 const objectFields = Object.keys(row);                
                 const insertFields = difference(objectFields,[pkField]);
-                const insertValues = insertFields.map((x:string)=>{
-                    const v = row[x];
+                const insertValues = insertFields.map((fieldName:string)=>{
+                    const v = row[fieldName];
 
                     // if the column is a datetime or timestamp column replace string with Date object
-                    const dataType = tableFieldsLookup[x].dataType;
+                    const dataType = tableFieldsLookup[fieldName].dataType;
                     const v2 = (v != null) && (dataType === 'datetime' || dataType === 'timestamp') ? new Date(v) : v;
 
                     // if the column is a foreign key column get the referenced table and then the new pk value 
-                    const foreignTable = foreignKeyFieldsLookup[x]?.foreignEntityName || '';
+                    const foreignTable = foreignKeyFieldsLookup[fieldName]?.foreignEntityName || '';
                     const v3 = fkValuesMap[foreignTable] ? (fkValuesMap[foreignTable][v2] || v2) : v2;
 
                     return v3;
@@ -73,7 +73,10 @@ export class DBImporter {
         return {pkOldNewMap, insertErrors};        
     }
 
-    async importDB(data:{[entityName:string]:any}) {
+    async importDB(data:{[entityName:string]:any[]}) {
+
+        const tablesWithCols = await this.dbService.tablesWithColumns();
+
         const tableNames = Object.keys(data);
         const sortedTableNames = await this.topoSortTables(tableNames);
         let insertErrors:any[] = [];
